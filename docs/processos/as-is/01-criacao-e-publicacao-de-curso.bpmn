@@ -1,0 +1,243 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+                  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+                  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+                  id="Definitions_CriacaoCurso"
+                  targetNamespace="http://gqs-project/processos/as-is"
+                  exporter="gqs-project" exporterVersion="0.3">
+
+  <bpmn:collaboration id="Collab_CriacaoCurso">
+    <bpmn:participant id="Pool_Empresa" name="Empresa (cursos online)" processRef="Proc_CriacaoCurso" />
+
+    <bpmn:textAnnotation id="Annot_Planejamento">
+      <bpmn:text>Conteúdo · Cronograma · Carga horária · Datas do curso · Qtd. de alunos · Valor da matrícula (fixo) · Modalidade (gravado | síncrono) · Período de inscrição</bpmn:text>
+    </bpmn:textAnnotation>
+    <bpmn:association id="Assoc_Annot_Planejamento" sourceRef="DataObj_Planejamento" targetRef="Annot_Planejamento" />
+
+    <bpmn:textAnnotation id="Annot_LimiteMeet">
+      <bpmn:text>RN-01.2: se síncrono, qtd. de alunos limitada ao nº máx. de participantes do plano pago do Google Meet</bpmn:text>
+    </bpmn:textAnnotation>
+    <bpmn:association id="Assoc_Annot_LimiteMeet" sourceRef="Task_Planejar" targetRef="Annot_LimiteMeet" />
+
+    <bpmn:textAnnotation id="Annot_VideoExiste">
+      <bpmn:text>Pré-condição: os vídeos do curso (1 por módulo) já existem no YouTube como "não listados"</bpmn:text>
+    </bpmn:textAnnotation>
+    <bpmn:association id="Assoc_Annot_VideoExiste" sourceRef="Flow_Gravado" targetRef="Annot_VideoExiste" />
+
+    <bpmn:textAnnotation id="Annot_MomentoMeet">
+      <bpmn:text>Curso com 1 ou N módulos → 1 ou N links. Momento exato da criação a confirmar (antes ou depois de publicar?)</bpmn:text>
+    </bpmn:textAnnotation>
+    <bpmn:association id="Assoc_Annot_MomentoMeet" sourceRef="Task_CriarMeet" targetRef="Annot_MomentoMeet" />
+  </bpmn:collaboration>
+
+  <bpmn:process id="Proc_CriacaoCurso" name="Criação e publicação de curso (AS-IS)" isExecutable="false">
+    <bpmn:laneSet id="LaneSet_1">
+      <bpmn:lane id="Lane_Coordenacao" name="Coordenação de cursos (a confirmar)">
+        <bpmn:flowNodeRef>Start_NovoCurso</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_Planejar</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>GW_Modalidade</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_CriarMeet</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>GW_Juncao</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_CadastrarSympla</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_Publicar</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>End_Publicado</bpmn:flowNodeRef>
+      </bpmn:lane>
+    </bpmn:laneSet>
+
+    <bpmn:startEvent id="Start_NovoCurso" name="Decisão de ofertar novo curso">
+      <bpmn:outgoing>Flow_1</bpmn:outgoing>
+    </bpmn:startEvent>
+
+    <bpmn:userTask id="Task_Planejar" name="Elaborar documento de planejamento do curso">
+      <bpmn:incoming>Flow_1</bpmn:incoming>
+      <bpmn:outgoing>Flow_2</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="DOA_Planejamento">
+        <bpmn:targetRef>DataObj_Planejamento</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:userTask>
+
+    <bpmn:exclusiveGateway id="GW_Modalidade" name="Modalidade?">
+      <bpmn:incoming>Flow_2</bpmn:incoming>
+      <bpmn:outgoing>Flow_Sincrono</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Gravado</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:userTask id="Task_CriarMeet" name="Criar reunião no Google Meet para cada dia/módulo">
+      <bpmn:incoming>Flow_Sincrono</bpmn:incoming>
+      <bpmn:outgoing>Flow_3</bpmn:outgoing>
+      <bpmn:multiInstanceLoopCharacteristics isSequential="true" />
+      <bpmn:dataOutputAssociation id="DOA_LinkMeet">
+        <bpmn:targetRef>DataObj_Link</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:userTask>
+
+    <bpmn:exclusiveGateway id="GW_Juncao">
+      <bpmn:incoming>Flow_3</bpmn:incoming>
+      <bpmn:incoming>Flow_Gravado</bpmn:incoming>
+      <bpmn:outgoing>Flow_4</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:userTask id="Task_CadastrarSympla" name="Lançar informações do curso no Sympla">
+      <bpmn:incoming>Flow_4</bpmn:incoming>
+      <bpmn:outgoing>Flow_5</bpmn:outgoing>
+      <bpmn:property id="Prop_Cadastrar" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="DIA_Planejamento">
+        <bpmn:sourceRef>DataObj_Planejamento</bpmn:sourceRef>
+        <bpmn:targetRef>Prop_Cadastrar</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataOutputAssociation id="DOA_Sympla">
+        <bpmn:targetRef>DataStore_Sympla</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:userTask>
+
+    <bpmn:userTask id="Task_Publicar" name="Publicar curso no Sympla (abrir inscrições)">
+      <bpmn:incoming>Flow_5</bpmn:incoming>
+      <bpmn:outgoing>Flow_6</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="DOA_Sympla_Publicar">
+        <bpmn:targetRef>DataStore_Sympla</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:userTask>
+
+    <bpmn:endEvent id="End_Publicado" name="Curso publicado — inscrições abertas">
+      <bpmn:incoming>Flow_6</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <bpmn:sequenceFlow id="Flow_1" sourceRef="Start_NovoCurso" targetRef="Task_Planejar" />
+    <bpmn:sequenceFlow id="Flow_2" sourceRef="Task_Planejar" targetRef="GW_Modalidade" />
+    <bpmn:sequenceFlow id="Flow_Sincrono" name="síncrono" sourceRef="GW_Modalidade" targetRef="Task_CriarMeet" />
+    <bpmn:sequenceFlow id="Flow_Gravado" name="gravado" sourceRef="GW_Modalidade" targetRef="GW_Juncao" />
+    <bpmn:sequenceFlow id="Flow_3" sourceRef="Task_CriarMeet" targetRef="GW_Juncao" />
+    <bpmn:sequenceFlow id="Flow_4" sourceRef="GW_Juncao" targetRef="Task_CadastrarSympla" />
+    <bpmn:sequenceFlow id="Flow_5" sourceRef="Task_CadastrarSympla" targetRef="Task_Publicar" />
+    <bpmn:sequenceFlow id="Flow_6" sourceRef="Task_Publicar" targetRef="End_Publicado" />
+
+    <bpmn:dataObjectReference id="DataObj_Planejamento" name="Documento de planejamento do curso" dataObjectRef="DataObject_Planejamento" />
+    <bpmn:dataObject id="DataObject_Planejamento" />
+    <bpmn:dataObjectReference id="DataObj_Link" name="Links do Meet (1 por dia/módulo)" dataObjectRef="DataObject_Link" />
+    <bpmn:dataObject id="DataObject_Link" />
+    <bpmn:dataStoreReference id="DataStore_Sympla" name="Sympla" />
+  </bpmn:process>
+
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Collab_CriacaoCurso">
+
+      <bpmndi:BPMNShape id="Pool_Empresa_di" bpmnElement="Pool_Empresa" isHorizontal="true">
+        <dc:Bounds x="160" y="80" width="1100" height="400" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_Coordenacao_di" bpmnElement="Lane_Coordenacao" isHorizontal="true">
+        <dc:Bounds x="190" y="80" width="1070" height="400" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Start_NovoCurso_di" bpmnElement="Start_NovoCurso">
+        <dc:Bounds x="232" y="182" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="207" y="225" width="86" height="27" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_Planejar_di" bpmnElement="Task_Planejar">
+        <dc:Bounds x="320" y="160" width="120" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="GW_Modalidade_di" bpmnElement="GW_Modalidade" isMarkerVisible="true">
+        <dc:Bounds x="500" y="175" width="50" height="50" />
+        <bpmndi:BPMNLabel><dc:Bounds x="493" y="150" width="64" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_CriarMeet_di" bpmnElement="Task_CriarMeet">
+        <dc:Bounds x="610" y="160" width="120" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="GW_Juncao_di" bpmnElement="GW_Juncao" isMarkerVisible="true">
+        <dc:Bounds x="765" y="175" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_CadastrarSympla_di" bpmnElement="Task_CadastrarSympla">
+        <dc:Bounds x="850" y="160" width="120" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_Publicar_di" bpmnElement="Task_Publicar">
+        <dc:Bounds x="1020" y="160" width="120" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="End_Publicado_di" bpmnElement="End_Publicado">
+        <dc:Bounds x="1192" y="182" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1167" y="225" width="86" height="27" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="DataObj_Planejamento_di" bpmnElement="DataObj_Planejamento">
+        <dc:Bounds x="400" y="88" width="36" height="50" />
+        <bpmndi:BPMNLabel><dc:Bounds x="300" y="98" width="95" height="27" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="DataObj_Link_di" bpmnElement="DataObj_Link">
+        <dc:Bounds x="652" y="300" width="36" height="50" />
+        <bpmndi:BPMNLabel><dc:Bounds x="695" y="312" width="90" height="27" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="DataStore_Sympla_di" bpmnElement="DataStore_Sympla">
+        <dc:Bounds x="960" y="300" width="50" height="50" />
+        <bpmndi:BPMNLabel><dc:Bounds x="968" y="357" width="34" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Annot_Planejamento_di" bpmnElement="Annot_Planejamento">
+        <dc:Bounds x="480" y="10" width="360" height="55" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Annot_LimiteMeet_di" bpmnElement="Annot_LimiteMeet">
+        <dc:Bounds x="230" y="300" width="270" height="60" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Annot_VideoExiste_di" bpmnElement="Annot_VideoExiste">
+        <dc:Bounds x="540" y="400" width="230" height="60" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Annot_MomentoMeet_di" bpmnElement="Annot_MomentoMeet">
+        <dc:Bounds x="780" y="380" width="230" height="70" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNEdge id="Flow_1_di" bpmnElement="Flow_1">
+        <di:waypoint x="268" y="200" /><di:waypoint x="320" y="200" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_2_di" bpmnElement="Flow_2">
+        <di:waypoint x="440" y="200" /><di:waypoint x="500" y="200" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Sincrono_di" bpmnElement="Flow_Sincrono">
+        <di:waypoint x="550" y="200" /><di:waypoint x="610" y="200" />
+        <bpmndi:BPMNLabel><dc:Bounds x="558" y="182" width="44" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Gravado_di" bpmnElement="Flow_Gravado">
+        <di:waypoint x="525" y="225" /><di:waypoint x="525" y="370" /><di:waypoint x="790" y="370" /><di:waypoint x="790" y="225" />
+        <bpmndi:BPMNLabel><dc:Bounds x="532" y="240" width="40" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_3_di" bpmnElement="Flow_3">
+        <di:waypoint x="730" y="200" /><di:waypoint x="765" y="200" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_4_di" bpmnElement="Flow_4">
+        <di:waypoint x="815" y="200" /><di:waypoint x="850" y="200" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_5_di" bpmnElement="Flow_5">
+        <di:waypoint x="970" y="200" /><di:waypoint x="1020" y="200" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_6_di" bpmnElement="Flow_6">
+        <di:waypoint x="1140" y="200" /><di:waypoint x="1192" y="200" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="DOA_Planejamento_di" bpmnElement="DOA_Planejamento">
+        <di:waypoint x="400" y="160" /><di:waypoint x="410" y="138" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="DIA_Planejamento_di" bpmnElement="DIA_Planejamento">
+        <di:waypoint x="436" y="113" /><di:waypoint x="880" y="160" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="DOA_LinkMeet_di" bpmnElement="DOA_LinkMeet">
+        <di:waypoint x="670" y="240" /><di:waypoint x="670" y="300" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="DOA_Sympla_di" bpmnElement="DOA_Sympla">
+        <di:waypoint x="930" y="240" /><di:waypoint x="970" y="300" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="DOA_Sympla_Publicar_di" bpmnElement="DOA_Sympla_Publicar">
+        <di:waypoint x="1050" y="240" /><di:waypoint x="1005" y="300" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Assoc_Annot_Planejamento_di" bpmnElement="Assoc_Annot_Planejamento">
+        <di:waypoint x="436" y="100" /><di:waypoint x="480" y="50" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Assoc_Annot_LimiteMeet_di" bpmnElement="Assoc_Annot_LimiteMeet">
+        <di:waypoint x="380" y="240" /><di:waypoint x="380" y="300" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Assoc_Annot_VideoExiste_di" bpmnElement="Assoc_Annot_VideoExiste">
+        <di:waypoint x="620" y="370" /><di:waypoint x="620" y="400" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Assoc_Annot_MomentoMeet_di" bpmnElement="Assoc_Annot_MomentoMeet">
+        <di:waypoint x="720" y="240" /><di:waypoint x="820" y="380" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

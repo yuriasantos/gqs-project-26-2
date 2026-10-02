@@ -1,0 +1,210 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+                  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+                  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+                  id="Definitions_LiberacaoAcesso"
+                  targetNamespace="http://gqs-project/processos/as-is"
+                  exporter="gqs-project" exporterVersion="0.3">
+
+  <bpmn:collaboration id="Collab_LiberacaoAcesso">
+    <bpmn:participant id="Pool_Empresa" name="Empresa (cursos online)" processRef="Proc_LiberacaoAcesso" />
+    <bpmn:participant id="Pool_Aluno" name="Aluno inscrito" />
+    <bpmn:messageFlow id="MF_LinkAcesso" name="E-mail (CCO) com link de acesso" sourceRef="Task_EnviarEmail" targetRef="Pool_Aluno" />
+
+    <bpmn:textAnnotation id="Annot_Gatilho">
+      <bpmn:text>Como a coordenação toma conhecimento da nova inscrição? (a confirmar)</bpmn:text>
+    </bpmn:textAnnotation>
+    <bpmn:association id="Assoc_Gatilho" sourceRef="Start_NovaInscricao" targetRef="Annot_Gatilho" />
+
+    <bpmn:textAnnotation id="Annot_SemControle">
+      <bpmn:text>Não há controle de quem recebeu o link. Única evidência: e-mails na caixa "Enviados" do Gmail</bpmn:text>
+    </bpmn:textAnnotation>
+    <bpmn:association id="Assoc_SemControle" sourceRef="DataStore_Gmail" targetRef="Annot_SemControle" />
+
+    <bpmn:textAnnotation id="Annot_LinkExiste">
+      <bpmn:text>Já existem antes das inscrições: vídeos não listados no YouTube (gravado) ou reuniões do Meet, 1 por dia (síncrono) — ver processo 01. Todos os links vão no mesmo e-mail? (a confirmar)</bpmn:text>
+    </bpmn:textAnnotation>
+    <bpmn:association id="Assoc_LinkExiste" sourceRef="DataObj_Link" targetRef="Annot_LinkExiste" />
+  </bpmn:collaboration>
+
+  <bpmn:process id="Proc_LiberacaoAcesso" name="Liberação de acesso ao curso (AS-IS)" isExecutable="false">
+    <bpmn:laneSet id="LaneSet_1">
+      <bpmn:lane id="Lane_Coordenacao" name="Coordenação de cursos (a confirmar)">
+        <bpmn:flowNodeRef>Start_NovaInscricao</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_Exportar</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_Comparar</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_EnviarEmail</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>End_Notificado</bpmn:flowNodeRef>
+      </bpmn:lane>
+    </bpmn:laneSet>
+
+    <bpmn:startEvent id="Start_NovaInscricao" name="Nova inscrição registrada no Sympla">
+      <bpmn:outgoing>Flow_1</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="MED_NovaInscricao" />
+    </bpmn:startEvent>
+
+    <bpmn:userTask id="Task_Exportar" name="Exportar planilha de inscritos do Sympla">
+      <bpmn:incoming>Flow_1</bpmn:incoming>
+      <bpmn:outgoing>Flow_2</bpmn:outgoing>
+      <bpmn:property id="Prop_Exportar" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="DIA_Sympla">
+        <bpmn:sourceRef>DataStore_Sympla</bpmn:sourceRef>
+        <bpmn:targetRef>Prop_Exportar</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataOutputAssociation id="DOA_Planilha">
+        <bpmn:targetRef>DataObj_Planilha</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:userTask>
+
+    <bpmn:userTask id="Task_Comparar" name="Comparar planilha com e-mails já enviados no Gmail">
+      <bpmn:incoming>Flow_2</bpmn:incoming>
+      <bpmn:outgoing>Flow_3</bpmn:outgoing>
+      <bpmn:property id="Prop_Comparar" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="DIA_Planilha_Comparar">
+        <bpmn:sourceRef>DataObj_Planilha</bpmn:sourceRef>
+        <bpmn:targetRef>Prop_Comparar</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataInputAssociation id="DIA_Gmail_Comparar">
+        <bpmn:sourceRef>DataStore_Gmail</bpmn:sourceRef>
+        <bpmn:targetRef>Prop_Comparar</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+    </bpmn:userTask>
+
+    <bpmn:sendTask id="Task_EnviarEmail" name="Enviar e-mail pelo Gmail (CCO) com link de acesso aos ainda não notificados">
+      <bpmn:incoming>Flow_3</bpmn:incoming>
+      <bpmn:outgoing>Flow_4</bpmn:outgoing>
+      <bpmn:property id="Prop_Enviar" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="DIA_Link">
+        <bpmn:sourceRef>DataObj_Link</bpmn:sourceRef>
+        <bpmn:targetRef>Prop_Enviar</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+      <bpmn:dataOutputAssociation id="DOA_Gmail">
+        <bpmn:targetRef>DataStore_Gmail</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:sendTask>
+
+    <bpmn:endEvent id="End_Notificado" name="Inscritos notificados com link de acesso">
+      <bpmn:incoming>Flow_4</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <bpmn:sequenceFlow id="Flow_1" sourceRef="Start_NovaInscricao" targetRef="Task_Exportar" />
+    <bpmn:sequenceFlow id="Flow_2" sourceRef="Task_Exportar" targetRef="Task_Comparar" />
+    <bpmn:sequenceFlow id="Flow_3" sourceRef="Task_Comparar" targetRef="Task_EnviarEmail" />
+    <bpmn:sequenceFlow id="Flow_4" sourceRef="Task_EnviarEmail" targetRef="End_Notificado" />
+
+    <bpmn:dataStoreReference id="DataStore_Sympla" name="Sympla" />
+    <bpmn:dataStoreReference id="DataStore_Gmail" name="Gmail (caixa Enviados)" />
+    <bpmn:dataObjectReference id="DataObj_Planilha" name="Planilha de inscritos (e-mails)" dataObjectRef="DataObject_Planilha" />
+    <bpmn:dataObject id="DataObject_Planilha" />
+    <bpmn:dataObjectReference id="DataObj_Link" name="Links de acesso (1 por módulo)" dataObjectRef="DataObject_Link" />
+    <bpmn:dataObject id="DataObject_Link" />
+  </bpmn:process>
+
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Collab_LiberacaoAcesso">
+
+      <bpmndi:BPMNShape id="Pool_Empresa_di" bpmnElement="Pool_Empresa" isHorizontal="true">
+        <dc:Bounds x="160" y="80" width="820" height="440" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_Coordenacao_di" bpmnElement="Lane_Coordenacao" isHorizontal="true">
+        <dc:Bounds x="190" y="80" width="790" height="440" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Pool_Aluno_di" bpmnElement="Pool_Aluno" isHorizontal="true">
+        <dc:Bounds x="160" y="560" width="820" height="60" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Start_NovaInscricao_di" bpmnElement="Start_NovaInscricao">
+        <dc:Bounds x="232" y="242" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="205" y="285" width="90" height="27" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_Exportar_di" bpmnElement="Task_Exportar">
+        <dc:Bounds x="320" y="220" width="120" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_Comparar_di" bpmnElement="Task_Comparar">
+        <dc:Bounds x="490" y="220" width="120" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_EnviarEmail_di" bpmnElement="Task_EnviarEmail">
+        <dc:Bounds x="660" y="220" width="120" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="End_Notificado_di" bpmnElement="End_Notificado">
+        <dc:Bounds x="842" y="242" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="817" y="285" width="86" height="27" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="DataStore_Sympla_di" bpmnElement="DataStore_Sympla">
+        <dc:Bounds x="355" y="390" width="50" height="50" />
+        <bpmndi:BPMNLabel><dc:Bounds x="363" y="447" width="34" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="DataStore_Gmail_di" bpmnElement="DataStore_Gmail">
+        <dc:Bounds x="600" y="390" width="50" height="50" />
+        <bpmndi:BPMNLabel><dc:Bounds x="585" y="447" width="80" height="27" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="DataObj_Planilha_di" bpmnElement="DataObj_Planilha">
+        <dc:Bounds x="500" y="110" width="36" height="50" />
+        <bpmndi:BPMNLabel><dc:Bounds x="400" y="120" width="95" height="27" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="DataObj_Link_di" bpmnElement="DataObj_Link">
+        <dc:Bounds x="700" y="110" width="36" height="50" />
+        <bpmndi:BPMNLabel><dc:Bounds x="640" y="163" width="80" height="27" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Annot_Gatilho_di" bpmnElement="Annot_Gatilho">
+        <dc:Bounds x="195" y="340" width="130" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Annot_SemControle_di" bpmnElement="Annot_SemControle">
+        <dc:Bounds x="680" y="380" width="260" height="70" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Annot_LinkExiste_di" bpmnElement="Annot_LinkExiste">
+        <dc:Bounds x="760" y="90" width="210" height="110" />
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNEdge id="Flow_1_di" bpmnElement="Flow_1">
+        <di:waypoint x="268" y="260" /><di:waypoint x="320" y="260" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_2_di" bpmnElement="Flow_2">
+        <di:waypoint x="440" y="260" /><di:waypoint x="490" y="260" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_3_di" bpmnElement="Flow_3">
+        <di:waypoint x="610" y="260" /><di:waypoint x="660" y="260" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_4_di" bpmnElement="Flow_4">
+        <di:waypoint x="780" y="260" /><di:waypoint x="842" y="260" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="MF_LinkAcesso_di" bpmnElement="MF_LinkAcesso">
+        <di:waypoint x="760" y="300" /><di:waypoint x="760" y="560" />
+        <bpmndi:BPMNLabel><dc:Bounds x="770" y="480" width="90" height="27" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="DIA_Sympla_di" bpmnElement="DIA_Sympla">
+        <di:waypoint x="380" y="390" /><di:waypoint x="380" y="300" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="DOA_Planilha_di" bpmnElement="DOA_Planilha">
+        <di:waypoint x="430" y="220" /><di:waypoint x="500" y="145" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="DIA_Planilha_Comparar_di" bpmnElement="DIA_Planilha_Comparar">
+        <di:waypoint x="522" y="160" /><di:waypoint x="535" y="220" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="DIA_Gmail_Comparar_di" bpmnElement="DIA_Gmail_Comparar">
+        <di:waypoint x="615" y="390" /><di:waypoint x="570" y="300" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="DOA_Gmail_di" bpmnElement="DOA_Gmail">
+        <di:waypoint x="700" y="300" /><di:waypoint x="640" y="390" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="DIA_Link_di" bpmnElement="DIA_Link">
+        <di:waypoint x="718" y="160" /><di:waypoint x="718" y="220" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Assoc_Gatilho_di" bpmnElement="Assoc_Gatilho">
+        <di:waypoint x="250" y="278" /><di:waypoint x="250" y="340" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Assoc_SemControle_di" bpmnElement="Assoc_SemControle">
+        <di:waypoint x="650" y="415" /><di:waypoint x="680" y="415" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Assoc_LinkExiste_di" bpmnElement="Assoc_LinkExiste">
+        <di:waypoint x="736" y="135" /><di:waypoint x="760" y="135" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>
