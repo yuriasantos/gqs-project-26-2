@@ -23,7 +23,11 @@ docs/processos/
 └── as-is/
     ├── NN-nome-do-processo.bpmn  # diagrama BPMN 2.0 com DI
     └── NN-nome-do-processo.md    # ficha do processo
+docs/requisitos/historias/   # histórias de usuário da v1 (US-NN-<slug>.md) e backlog no README
+docs/projeto/                # das histórias ao projeto OO (bottom-up, FastAPI): passos NN-*.md, diagramas em Mermaid
 ```
+
+O projeto (`docs/projeto/`) cita critérios de aceitação como `US-NN cN` e mantém a rastreabilidade história → critério → método → teste. Ao mudar uma história, conferir os passos 2 e 3.
 
 Processos mapeados: `01` Criação e publicação de curso; `02` Liberação de acesso ao curso (ambos em rascunho, com dúvidas abertas).
 
