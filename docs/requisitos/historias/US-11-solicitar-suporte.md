@@ -2,6 +2,7 @@
 
 **Persona:** Aluno
 **Rastreabilidade:** Funcionalidade nova · cobre as exceções do Processo 02 (ex.: "aluno diz que não recebeu", "e-mail cadastrado errado")
+**Versão:** depois da v1 (fora do escopo atual)
 
 ## História
 

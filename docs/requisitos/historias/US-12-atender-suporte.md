@@ -2,6 +2,7 @@
 
 **Persona:** Coordenador
 **Rastreabilidade:** Funcionalidade nova · complementa a US-11
+**Versão:** depois da v1 (fora do escopo atual)
 
 ## História
 

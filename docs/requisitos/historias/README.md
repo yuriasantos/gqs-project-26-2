@@ -39,6 +39,13 @@ Primeira versão **muito simples** de um sistema próprio para gestão de cursos
 | US-07 | [Inscrever-se em um curso](./US-07-inscrever-em-curso.md) | Aluno | 02 | Rascunho |
 | US-08 | [Ver inscritos e confirmar pagamento](./US-08-confirmar-pagamento.md) | Coordenador | 02 | Rascunho |
 | US-09 | [Ver meus cursos e links de acesso](./US-09-ver-meus-cursos.md) | Aluno | 02 | Rascunho |
+
+## Depois da v1
+
+Histórias fora do escopo da v1, mantidas para versões futuras.
+
+| ID | História | Persona | Processo | Status |
+|---|---|---|---|---|
 | US-10 | [Comentar nos vídeos/módulos](./US-10-comentar-modulo.md) | Aluno | Novo | Rascunho |
 | US-11 | [Solicitar suporte](./US-11-solicitar-suporte.md) | Aluno | Novo | Rascunho |
 | US-12 | [Ver e atender solicitações de suporte](./US-12-atender-suporte.md) | Coordenador | Novo | Rascunho |

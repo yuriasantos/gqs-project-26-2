@@ -2,6 +2,7 @@
 
 **Persona:** Aluno
 **Rastreabilidade:** Funcionalidade nova (não existe no AS-IS)
+**Versão:** depois da v1 (fora do escopo atual)
 
 ## História
 
