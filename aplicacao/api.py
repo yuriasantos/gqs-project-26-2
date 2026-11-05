@@ -3,6 +3,8 @@
 import secrets
 
 from fastapi import FastAPI, HTTPException, Request, Response
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, ConfigDict
 
 from aplicacao.autenticacao import Perfil, RepositorioUsuarios
@@ -17,6 +19,13 @@ class Credenciais(BaseModel):
 def criar_aplicacao(usuarios: RepositorioUsuarios) -> FastAPI:
     app = FastAPI(title="Cursos online — US-05")
     sessoes = {}
+
+    @app.exception_handler(RequestValidationError)
+    async def recusar_dados_invalidos(requisicao: Request, erro: RequestValidationError):
+        # Não devolver os dados recebidos: eles podem conter a senha.
+        if requisicao.url.path == "/login":
+            return JSONResponse(status_code=401, content={"detail": "E-mail ou senha incorretos."})
+        return JSONResponse(status_code=422, content={"detail": "Dados inválidos."})
 
     @app.post("/login")
     def entrar(credenciais: Credenciais, resposta: Response):
