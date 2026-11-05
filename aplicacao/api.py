@@ -1,6 +1,7 @@
 """Rotas de autenticação e áreas protegidas da US-05."""
 
-import secrets
+from collections.abc import Callable
+from time import monotonic
 
 from fastapi import FastAPI, HTTPException, Request, Response
 from fastapi.exceptions import RequestValidationError
@@ -8,6 +9,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel, ConfigDict
 
 from aplicacao.autenticacao import Perfil, RepositorioUsuarios
+from aplicacao.sessoes import GerenciadorSessoes
 
 
 class Credenciais(BaseModel):
@@ -16,9 +18,13 @@ class Credenciais(BaseModel):
     senha: str
 
 
-def criar_aplicacao(usuarios: RepositorioUsuarios) -> FastAPI:
+def criar_aplicacao(
+    usuarios: RepositorioUsuarios,
+    relogio: Callable[[], float] = monotonic,
+    *, cookie_seguro: bool = True,
+) -> FastAPI:
     app = FastAPI(title="Cursos online — US-05")
-    sessoes = {}
+    sessoes = GerenciadorSessoes(relogio)
 
     @app.exception_handler(RequestValidationError)
     async def recusar_dados_invalidos(requisicao: Request, erro: RequestValidationError):
@@ -32,22 +38,22 @@ def criar_aplicacao(usuarios: RepositorioUsuarios) -> FastAPI:
         usuario = usuarios.autenticar(credenciais.email, credenciais.senha)
         if usuario is None:
             raise HTTPException(401, "E-mail ou senha incorretos.")
-        sessoes.pop(requisicao.cookies.get("sessao"), None)
-        token = secrets.token_urlsafe(32)
-        sessoes[token] = usuario
-        resposta.set_cookie("sessao", token, httponly=True, secure=True, samesite="strict")
+        sessoes.encerrar(requisicao.cookies.get("sessao"))
+        token = sessoes.criar(usuario)
+        resposta.set_cookie("sessao", token, httponly=True, secure=cookie_seguro,
+                            samesite="strict", max_age=sessoes.DURACAO)
         destino = "/area-aluno" if usuario.perfil == Perfil.ALUNO else "/painel-coordenador"
         return {"perfil": usuario.perfil, "destino": destino}
 
     @app.post("/sair", status_code=204)
     def sair(requisicao: Request):
-        sessoes.pop(requisicao.cookies.get("sessao"), None)
+        sessoes.encerrar(requisicao.cookies.get("sessao"))
         resposta = Response(status_code=204)
-        resposta.delete_cookie("sessao", httponly=True, secure=True, samesite="strict")
+        resposta.delete_cookie("sessao", httponly=True, secure=cookie_seguro, samesite="strict")
         return resposta
 
     def acessar_area(requisicao: Request, perfil: Perfil):
-        usuario = sessoes.get(requisicao.cookies.get("sessao"))
+        usuario = sessoes.obter_usuario(requisicao.cookies.get("sessao"))
         if usuario is None:
             raise HTTPException(401, "Sessão inválida ou encerrada.")
         if usuario.perfil != perfil:
