@@ -28,15 +28,23 @@ def criar_aplicacao(usuarios: RepositorioUsuarios) -> FastAPI:
         return JSONResponse(status_code=422, content={"detail": "Dados inválidos."})
 
     @app.post("/login")
-    def entrar(credenciais: Credenciais, resposta: Response):
+    def entrar(credenciais: Credenciais, resposta: Response, requisicao: Request):
         usuario = usuarios.autenticar(credenciais.email, credenciais.senha)
         if usuario is None:
             raise HTTPException(401, "E-mail ou senha incorretos.")
+        sessoes.pop(requisicao.cookies.get("sessao"), None)
         token = secrets.token_urlsafe(32)
         sessoes[token] = usuario
         resposta.set_cookie("sessao", token, httponly=True, secure=True, samesite="strict")
         destino = "/area-aluno" if usuario.perfil == Perfil.ALUNO else "/painel-coordenador"
         return {"perfil": usuario.perfil, "destino": destino}
+
+    @app.post("/sair", status_code=204)
+    def sair(requisicao: Request):
+        sessoes.pop(requisicao.cookies.get("sessao"), None)
+        resposta = Response(status_code=204)
+        resposta.delete_cookie("sessao", httponly=True, secure=True, samesite="strict")
+        return resposta
 
     def acessar_area(requisicao: Request, perfil: Perfil):
         usuario = sessoes.get(requisicao.cookies.get("sessao"))
