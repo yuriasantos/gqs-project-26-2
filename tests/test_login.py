@@ -52,6 +52,8 @@ def test_c1_aluno_nao_acessa_painel_do_coordenador(cliente):
     {"senha": "Senha-forte-123"},
     {},
     {"email": "' OR 1=1 --", "senha": "qualquer"},
+    {"email": None, "senha": "Senha-forte-123"},
+    {"email": "aluno@exemplo.com", "senha": ["Senha-forte-123"]},
 ])
 def test_c2_recusa_credenciais_com_mesma_mensagem(cliente, dados):
     resposta = cliente.post("/login", json=dados)
@@ -100,3 +102,27 @@ def test_novo_login_substitui_sessao_anterior(cliente):
 def test_areas_recusam_visitante_e_token_inventado(cliente, destino):
     assert cliente.get(destino).status_code == 401
     assert cliente.get(destino, headers={"Cookie": "sessao=inventada"}).status_code == 401
+
+
+def test_sessao_expira_no_servidor_mesmo_com_cookie_copiado(usuarios):
+    instante = [100.0]
+    app = criar_aplicacao(usuarios, relogio=lambda: instante[0])
+    with TestClient(app, base_url="https://testserver") as cliente:
+        resposta = cliente.post("/login", json={"email": "aluno@exemplo.com", "senha": "Senha-forte-123"})
+        token = cliente.cookies.get("sessao")
+        assert "Max-Age=3600" in resposta.headers["set-cookie"]
+        instante[0] += 3599
+        assert cliente.get("/area-aluno").status_code == 200
+        instante[0] += 1
+        assert cliente.get("/area-aluno", headers={"Cookie": f"sessao={token}"}).status_code == 401
+
+
+def test_sair_nao_encerra_sessao_de_outro_navegador(usuarios):
+    app = criar_aplicacao(usuarios)
+    with TestClient(app, base_url="https://testserver") as primeiro, TestClient(app, base_url="https://testserver") as segundo:
+        dados = {"email": "aluno@exemplo.com", "senha": "Senha-forte-123"}
+        primeiro.post("/login", json=dados)
+        segundo.post("/login", json=dados)
+        primeiro.post("/sair")
+        assert primeiro.get("/area-aluno").status_code == 401
+        assert segundo.get("/area-aluno").status_code == 200
