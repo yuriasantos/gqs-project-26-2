@@ -40,3 +40,22 @@ def test_c1_login_abre_area_do_perfil(cliente, email, senha, perfil, destino):
 def test_c1_aluno_nao_acessa_painel_do_coordenador(cliente):
     cliente.post("/login", json={"email": "aluno@exemplo.com", "senha": "Senha-forte-123"})
     assert cliente.get("/painel-coordenador").status_code == 403
+
+
+@pytest.mark.parametrize("dados", [
+    {"email": "ausente@exemplo.com", "senha": "Senha-forte-123"},
+    {"email": "aluno@exemplo.com", "senha": "incorreta"},
+    {"email": "ausente@exemplo.com", "senha": "incorreta"},
+    {"email": "", "senha": ""},
+    {"email": "aluno@exemplo.com", "senha": ""},
+    {"email": "aluno@exemplo.com"},
+    {"senha": "Senha-forte-123"},
+    {},
+    {"email": "' OR 1=1 --", "senha": "qualquer"},
+])
+def test_c2_recusa_credenciais_com_mesma_mensagem(cliente, dados):
+    resposta = cliente.post("/login", json=dados)
+    assert resposta.status_code == 401
+    assert resposta.json() == {"detail": "E-mail ou senha incorretos."}
+    assert "sessao" not in resposta.cookies
+    assert cliente.get("/area-aluno").status_code == 401
