@@ -9,7 +9,7 @@ Também cobre: campos obrigatórios (nome, e-mail, senha).
 """
 import pytest
 
-from conta_aluno import (
+from class_criar_conta_aluno import (
     CampoObrigatorioError,
     CredenciaisInvalidasError,
     EmailInvalidoError,
