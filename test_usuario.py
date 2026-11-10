@@ -46,3 +46,10 @@ def test_us04_c1_recusa_nome_apenas_com_espacos():
             email="michele@exemplo.com",
             senha_hash="hash-ficticio",
         )
+def test_us04_c1_recusa_senha_hash_vazia():
+    with pytest.raises(ValueError, match="Hash da senha obrigatório"):
+        Usuario(
+            nome="Michele Carvalho",
+            email="michele@exemplo.com",
+            senha_hash="",
+        )
